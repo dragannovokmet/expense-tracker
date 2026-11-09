@@ -1,0 +1,37 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<PageTitle>Expense Tracker</PageTitle>
+
+<h1 data-testid="home-title">Expense Tracker</h1>
+
+<p>Track your expenses, plan a monthly budget and see how your spending compares to the plan.</p>
+
+<p>
+    API status:
+    <span data-testid="api-status" class="@StatusCssClass">@status</span>
+</p>
+
+@code {
+    private string status = "Checking...";
+
+    private string StatusCssClass => status switch
+    {
+        "Healthy" => "badge bg-success",
+        "Checking..." => "badge bg-secondary",
+        _ => "badge bg-danger",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var response = await Http.GetAsync("health");
+            status = (await response.Content.ReadAsStringAsync()).Trim();
+        }
+        catch (HttpRequestException)
+        {
+            status = "Unavailable";
+        }
+    }
+}

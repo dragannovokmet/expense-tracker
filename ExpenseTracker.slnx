@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ExpenseTracker.Api/ExpenseTracker.Api.csproj" />
+    <Project Path="src/ExpenseTracker.Core/ExpenseTracker.Core.csproj" />
+    <Project Path="src/ExpenseTracker.Infrastructure/ExpenseTracker.Infrastructure.csproj" />
+    <Project Path="src/ExpenseTracker.Web/ExpenseTracker.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ExpenseTracker.ApiTests/ExpenseTracker.ApiTests.csproj" />
+    <Project Path="tests/ExpenseTracker.IntegrationTests/ExpenseTracker.IntegrationTests.csproj" />
+    <Project Path="tests/ExpenseTracker.UiTests/ExpenseTracker.UiTests.csproj" />
+    <Project Path="tests/ExpenseTracker.UnitTests/ExpenseTracker.UnitTests.csproj" />
+  </Folder>
+</Solution>
