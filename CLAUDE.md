@@ -51,6 +51,8 @@ pwsh tests/ExpenseTracker.UiTests/bin/Debug/net10.0/playwright.ps1 install chrom
 dotnet ef migrations add <Name> --project src/ExpenseTracker.Infrastructure --startup-project src/ExpenseTracker.Api --output-dir Persistence/Migrations
 ```
 
+New files in `docs/` and other non-project files (README, workflows, config) are added to `ExpenseTracker.slnx` under `Solution Items`, so they are visible in Visual Studio's Solution Explorer.
+
 The build treats warnings as errors, including NuGet vulnerability warnings. Fix the cause; do not suppress.
 
 ## Code rules
