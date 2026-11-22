@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Document version** | 0.1 (draft) |
+| **Document version** | 0.2 (draft) |
 | **Author / QA owner** | Dragan Novokmet |
 | **Status** | Draft, under review |
-| **Last updated** | 2026-11-09 |
+| **Last updated** | 2026-11-22 |
 
 ## 1. Purpose
 
@@ -24,14 +24,16 @@ The plan is a living document. It is updated when scope, risks or the approach c
 | Authentication | Registration, sign-in, sign-out, access to protected pages and endpoints |
 | Accounts | Create, view, edit and delete bank accounts; country selection; account number and IBAN validation; bank recognition for Bosnia and Herzegovina; user-defined banks |
 | Categories | Predefined categories; create, rename and archive custom categories |
-| Expenses | Create, view, edit and delete expenses; list with filters, search, sorting and paging; input validation |
+| Expenses | Create, view, edit and delete expenses, including description, note and currency; list with filters, search, sorting and paging; input validation |
 
 **Phase 1b: reports and budget**
 
 | Area | Features |
 |---|---|
-| Reports | Daily, weekly (Monday to Sunday) and monthly totals, overall and per category, with a chart |
+| Reports | Daily, weekly (Monday to Sunday) and monthly totals, overall and per category, with a chart. Totals are calculated **per currency**; amounts in different currencies are never added together |
 | Budget | Monthly budget, overall and per category; budget vs actual; warnings at 80% and 100% |
+| Planned expenses | Planned items for future months with an expected date and amount; statuses planned → paid / skipped; "Pay" creates a linked actual expense; plan vs actual per item and per month; copying selected items to the next month; delete and edit rules for future, current and past months |
+| Expense groups | Groups such as "Basket" that collect real expenses, each keeping its own date and category; the group total is always calculated |
 | Export | Export of expenses to CSV |
 
 ### 2.2 Out of scope for Phase 1
@@ -41,11 +43,13 @@ The plan is a living document. It is updated when scope, risks or the approach c
 | Smart categorization and AI features | Phase 2 |
 | Android app | Phase 3 |
 | Payment capture from notifications, statement import, reconciliation | Phase 4 |
+| Booked amount in KM taken from the bank statement for card payments in a foreign currency | Phase 4, as part of reconciliation |
+| Reminders for planned expenses | Phase 3, as Android notifications |
 | Localization (Serbian, Bosnian, Croatian) | Phase 5 |
 | Demo mode | Decided after Phase 1, together with the public demo |
 | Load and performance testing | Single-user personal app at this stage; basic response times are watched in CI only |
 | Penetration testing | Not planned. Authentication and authorization are tested functionally (see risk R2) |
-| Browsers other than current Chromium, Firefox and WebKit | Not targeted |
+| Branded browsers (Chrome, Edge) and real Safari | Chrome and Edge are covered through Chromium, which uses the same engine. Real Safari on macOS and iOS is not tested; WebKit in Playwright is used as the closest approximation |
 
 ## 3. References
 
@@ -56,6 +60,21 @@ The plan is a living document. It is updated when scope, risks or the approach c
 ## 4. Risk analysis
 
 Testing effort is driven by risk. Each risk is rated for likelihood (L) and impact (I) from 1 (low) to 3 (high). The risk score is L × I and sets the test priority.
+
+- **Product risks** are risks that the app itself fails or behaves incorrectly. Testing reduces them.
+- **Project risks** are risks to the work of building and testing the app. Decisions and process changes reduce them, not tests.
+- **Impact** is the consequence for the user:
+  - 3: wrong money, lost data or another user's data
+  - 2: a feature is wrong but the user notices it and can work around it
+  - 1: a minor inconvenience
+- **Likelihood** is an estimate, not a measurement. It is based on:
+  - the complexity of the logic and the number of conditions
+  - new code versus a mature library
+  - measures that already prevent the defect, such as `decimal` for money
+  - defects found so far
+
+  Ratings are reviewed as testing finds defects.
+- **Risk IDs are permanent.** Tests, the traceability matrix and bug reports refer to them, so the table stays in ID order and IDs are never renumbered. The score, not the position in the table, sets the priority.
 
 ### 4.1 Product risks
 
@@ -73,6 +92,11 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | R10 | Budget warnings appear at the wrong moment or not at all | 2 | 2 | 4 | Boundary values around 80% and 100% (just below, exactly at, just above) |
 | R11 | Session problems: user stays signed in after sign-out, or protected pages are reachable without signing in | 1 | 3 | 3 | UI and API tests for sign-out and for direct navigation to protected URLs |
 | R12 | Accessibility barriers prevent keyboard or screen reader use | 2 | 1 | 2 | Automated axe checks on main pages; manual keyboard-only pass during exploratory sessions |
+| R13 | Amounts in different currencies are added together as if they were one currency (10 EUR + 10 KM shown as 20) | 2 | 3 | **6** | Reports, budget and group totals tested with mixed currencies; each currency has its own total; equivalence partitions per currency |
+| R14 | Copying a plan to the next month produces wrong dates or duplicates, or changes a closed month | 2 | 3 | **6** | Boundary values on day 28–31, leap year and December → January; copying into a month that already has a plan changes nothing; decision table for month type × operation × paid or unpaid item |
+| R15 | A group total differs from the sum of its expenses, or planned amounts are counted as spent | 2 | 3 | **6** | Invariant checks after adding, editing and deleting expenses in a group; reports checked with planned and paid items in the same month |
+| R16 | A database migration loses or corrupts existing data | 1 | 3 | 3 | Migrations applied to a database that already contains data; row counts and key values checked before and after |
+| R17 | A double click or double submit creates the same expense twice | 2 | 2 | 4 | UI test with a double click on save; API test with the same request sent twice |
 
 ### 4.2 Project risks
 
@@ -82,6 +106,9 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | P2 | AI-generated code or tests contain mistakes that look correct | Every change is reviewed by the QA owner; new tests are also reviewed by an independent test-review agent |
 | P3 | Real personal or banking data ends up in the public repository | Synthetic data only (see section 7); review before every push |
 | P4 | Single person in the QA role; no independent tester | Exploratory sessions with written charters; review checklist; test review agent as a second pair of eyes |
+| P5 | Scope creep: new ideas keep entering Phase 1, so the phase never ends | Each new idea first goes into the project plan with a target phase. It enters Phase 1 only by a conscious decision, together with an update of this test plan. |
+| P6 | Limited time: the project is built alongside a full-time job | Small steps; each feature is finished to its Definition of Done before the next one starts |
+| P7 | Local and CI environments differ (Windows and LocalDB versus Linux and a SQL Server container, time zones) | The same tests run in both environments; time comes from `TimeProvider`; the CI runner is pinned to `ubuntu-24.04` |
 
 ## 5. Test approach
 
@@ -97,6 +124,13 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | Accessibility | axe-core for Playwright | WCAG 2.1 AA rules on main pages | Nightly |
 | Exploratory | Manual, session-based | Areas where scripted tests are weak: usability, unexpected input, combinations | Once per feature area, before Phase 1 exit |
 
+**Smoke tests.** A small set of existing API and UI tests is marked with `[Category("Smoke")]`. These tests check the health endpoint, that the web app loads, sign-in, and adding an expense that then appears in the list. No separate smoke tests are written. The smoke set runs:
+- first in CI. If it fails, the full UI suite is not started (fail fast).
+- locally before an exploratory session.
+- after a deployment, once a public demo exists.
+
+The health check alone is not a smoke test. It only shows that the API is running and can reach the database.
+
 **Automation principle.** A check is automated at the lowest level that can catch the defect. Business rules are covered by unit tests; the API layer checks contracts and authorization; UI tests cover the flows a user really goes through, not every rule again. UI tests prepare their data through the API and only verify the behavior under test.
 
 ### 5.2 Test design techniques
@@ -104,9 +138,9 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | Technique | Where it is used |
 |---|---|
 | Equivalence partitioning | Amounts, text lengths, account number formats per country, filter values |
-| Boundary value analysis | Amount limits, date limits, page sizes, budget thresholds (80%, 100%), report period start and end |
-| Decision tables | Report period × date; budget state (no budget, under, warning, over); category state × action |
-| State transition testing | Category lifecycle (active, archived); account lifecycle; sign-in session |
+| Boundary value analysis | Amount limits, date limits, page sizes, budget thresholds (80%, 100%), report period start and end; day 28–31 when copying a plan; month change at 23:59 and 00:00 in the user's time zone |
+| Decision tables | Report period × date; budget state (no budget, under, warning, over); category state × action; month type (future, current, past) × operation × paid or unpaid planned item |
+| State transition testing | Category lifecycle (active, archived); account lifecycle; sign-in session; planned item (planned → paid or skipped; no return from paid while linked to an expense) |
 | Pairwise testing | Combinations of list filters and sorting |
 | Error guessing and checklists | Empty input, whitespace only, local characters, very long input, double submit, browser back button |
 | Exploratory testing | Charters per feature area, time-boxed to 60–90 minutes, notes kept in `docs/exploratory/` |
@@ -124,8 +158,10 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 
 | Environment | Database | Purpose |
 |---|---|---|
-| Local | SQL Server LocalDB | Development, debugging, exploratory testing |
-| CI (GitHub Actions, Ubuntu) | SQL Server container | All automated tests on every push and pull request; nightly full run |
+| Local, manual use | LocalDB `ExpenseTracker` | Development, debugging, exploratory testing. Automated tests never write to this database. |
+| Local, integration tests | LocalDB `ExpenseTracker_IntegrationTests` | Integration tests. The database is dropped and migrated again at the **start** of each run, so every run begins clean; data is kept after the run for debugging. |
+| Local, API and UI tests | LocalDB `ExpenseTracker_E2E` | API and UI tests against the running app, started with the `e2e` launch profile (Test environment, test-only seeding endpoint enabled). Set up together with the first feature that writes data (registration). |
+| CI (GitHub Actions, `ubuntu-24.04`) | SQL Server container | All automated tests on every push and pull request; nightly full run. The container is new for every run. |
 
 - **Time control:** the app reads the current time from an injected `TimeProvider`. In tests the clock is fixed, so period boundaries can be tested for any date.
 - **Test-only endpoints** (for example data seeding) exist only in the Test environment and are checked to be unavailable elsewhere.
@@ -134,8 +170,15 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 
 - **Synthetic data only.** No real names, account numbers, bank statements or notifications are committed. This applies to the code, the tests and the documentation.
 - **Valid test account numbers** are generated with correct check digits, using real bank codes from the public catalog but invented account numbers.
-- **Each test creates its own data** with unique values (for example a unique user per test class), so tests are independent and can run in parallel.
-- **Reference data** (BiH bank catalog, predefined categories) is seeded and treated as read-only by tests.
+- **Three kinds of test data:**
+
+| Kind | How it is created | Example |
+|---|---|---|
+| Reference data | Seeded by migrations; read-only for tests | BiH bank catalog, predefined categories |
+| Per-test data | Created by each test through builders, the API or the seeding endpoint, with unique values | A unique user per test class with its own accounts and expenses |
+| Synthetic bulk data | Generated with Bogus for paging, filtering and report tests and for exploratory sessions | Three months of invented expenses |
+
+- **Each test creates the data it needs** and does not rely on data left by other tests. Shared, unexplained data ("mystery guest") is avoided, because a test should show everything it depends on.
 - **Test data builders** keep test setup short and readable.
 
 ## 8. Entry, exit and suspension criteria
@@ -158,7 +201,7 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 
 ### 8.3 Suspension and resumption
 
-Testing of a feature is suspended when the build or the deployment of the app is broken, or when a blocking defect prevents meaningful testing. It resumes when the cause is fixed and a smoke check (health check plus sign-in) passes.
+Testing of a feature is suspended when the build or the deployment of the app is broken, or when a blocking defect prevents meaningful testing. It resumes when the cause is fixed and the smoke set (section 5.1) passes.
 
 ## 9. Defect management
 
@@ -213,7 +256,7 @@ Defects found are also tracked by severity and by the level where they were foun
 1. ✅ Project skeleton, health check and CI
 2. Test plan and Phase 1 user stories reviewed
 3. Phase 1a: authentication → accounts → categories → expenses, each with its tests
-4. Phase 1b: reports → budget → budget vs actual → CSV export, each with its tests
+4. Phase 1b: reports → budget → budget vs actual → planned expenses and copying a month → expense groups → CSV export, each with its tests
 5. Exploratory sessions, defect fixing, stability gate (10 green runs)
 6. Test summary report and Phase 1 exit
 
@@ -222,3 +265,4 @@ Defects found are also tracked by severity and by the level where they were foun
 | Version | Date | Change |
 |---|---|---|
 | 0.1 | 2026-11-09 | First draft |
+| 0.2 | 2026-11-22 | After the first review:<br>- added planned expenses, expense groups, description, note and per-currency totals to the scope<br>- clarified browser coverage<br>- explained how likelihood and impact are rated<br>- added risks R13–R17 and P5–P7<br>- added the smoke set<br>- added test databases per environment and the three kinds of test data |
