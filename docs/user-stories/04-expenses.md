@@ -2,7 +2,7 @@
 
 **Phase:** 1a
 **Status:** Reviewed
-**Related risks:** R1 (money), R2 (data of another user), R3 (dates), R6 (validation gaps), R8 (list results), R13 (currencies), R17 (double submit)
+**Related risks:** R1 (money), R2 (data of another user), R3 (dates), R6 (validation gaps), R8 (list results), R13 (currencies), R17 (double submit), R18 (concurrent edits), R19 (amount input), R20 (wrong account or card)
 
 ---
 
@@ -35,7 +35,7 @@
 | AC17 | I am on the new expense form | I paste `10.555` into the amount field | The form shows "Amount can have at most 2 decimals." and does not save until the amount is corrected |
 | AC18 | I am on the new expense form | I enter `1.234` or `1,234` (meant as a thousands separator) | It is rejected with "Amount can have at most 2 decimals." It is never saved as 1234 or as 1.23 |
 
-**Risks:** R1, R3, R6, R13, R17
+**Risks:** R1, R3, R6, R13, R17, R19
 **Notes:**
 - Money is stored as `decimal` with 2 decimals.
 - AC8, AC16 and AC17: the amount is never truncated or rounded silently. Truncating `10.555` to `10.55` would hide a typo (the user may have meant `105.55`). The UI stops a third decimal from being typed (AC16), and the API still rejects it (AC8), because the API can be called without the UI (Postman, tests, the Android app). AC17 covers pasting, which a typing mask often misses.
@@ -72,7 +72,7 @@
 | AC11 | – | An API request saves an expense with a card that does not belong to the chosen account | It is rejected with status 400 and "The card does not belong to the selected account." |
 | AC12 | I save an expense paid by card without choosing an account or a card | I open it later, or edit another field and save | It still has no account and no card; the app never assigns an account by guessing (for example "the current account") |
 
-**Risks:** R6
+**Risks:** R6, R20
 **Notes:**
 - Payment methods: Cash, Card, Mobile wallet, Online account, Bank transfer, Other. The payment method says *how* I paid; the account says *where the money came from*. PayPal, AirCash and similar services are accounts (US-ACC-05), not separate payment methods.
 - **Mobile wallet** covers Google Wallet, Apple Pay and Samsung Wallet, on a phone (NFC) or on a smartwatch connected to the wallet. Behind the wallet is a real card, so the expense is charged to that card and its account.
@@ -102,7 +102,7 @@
 | AC6 | The same expense is open in two tabs | I change the amount in the first tab and save, then change the description in the second tab and save | The second save is rejected with "This expense was changed in the meantime. Reload it." (status 409); the change from the first tab is kept |
 | AC7 | An expense was deleted in another tab | I try to delete it again | I see "This expense no longer exists." and the list is refreshed; there is no server error |
 
-**Risks:** R1, R6, R2
+**Risks:** R1, R6, R2, R18, R20
 **Notes:**
 - Editing or deleting another user's expense returns 404 (US-AUTH-04/AC4). It is listed here because of risk R2.
 - AC5: a common bug is a form that does not find the archived account in its list and clears it silently on save.

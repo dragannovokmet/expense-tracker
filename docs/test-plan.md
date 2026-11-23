@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Document version** | 0.2 (draft) |
+| **Document version** | 0.3 (draft) |
 | **Author / QA owner** | Dragan Novokmet |
 | **Status** | Draft, under review |
-| **Last updated** | 2026-11-22 |
+| **Last updated** | 2026-11-23 |
 
 ## 1. Purpose
 
@@ -22,15 +22,15 @@ The plan is a living document. It is updated when scope, risks or the approach c
 | Area | Features |
 |---|---|
 | Authentication | Registration, sign-in, sign-out, access to protected pages and endpoints |
-| Accounts | Create, view, edit and delete bank accounts; country selection; account number and IBAN validation; bank recognition for Bosnia and Herzegovina; user-defined banks |
-| Categories | Predefined categories; create, rename and archive custom categories |
-| Expenses | Create, view, edit and delete expenses, including description, note and currency; list with filters, search, sorting and paging; input validation |
+| Accounts | Bank accounts: create, view, edit, archive, restore and delete; country selection; account number and IBAN validation; bank recognition for Bosnia and Herzegovina; user-defined banks; changing the account number with a confirmation. Online accounts (PayPal, AirCash, Revolut and similar) with a provider instead of an account number. Cards on bank and online accounts: name, last 4 digits, card type, virtual flag |
+| Categories | Predefined categories (a copy per user); create, rename, archive, restore and delete custom categories; at least one active category |
+| Expenses | Create, view, edit and delete expenses, including description, note and currency (KM, EUR, USD, CAD); payment method and the account and card it was paid from; amounts with a decimal comma or point; list with filters (including "No account"), search that ignores diacritics, sorting and paging; input validation; concurrent edits |
 
 **Phase 1b: reports and budget**
 
 | Area | Features |
 |---|---|
-| Reports | Daily, weekly (Monday to Sunday) and monthly totals, overall and per category, with a chart. Totals are calculated **per currency**; amounts in different currencies are never added together |
+| Reports | Daily, weekly (Monday to Sunday) and monthly totals, overall, per category and per account (expenses without an account in their own group), with a chart. Totals are calculated **per currency**; amounts in different currencies are never added together |
 | Budget | Monthly budget, overall and per category; budget vs actual; warnings at 80% and 100% |
 | Planned expenses | Planned items for future months with an expected date and amount; statuses planned → paid / skipped; "Pay" creates a linked actual expense; plan vs actual per item and per month; copying selected items to the next month; delete and edit rules for future, current and past months |
 | Expense groups | Groups such as "Basket" that collect real expenses, each keeping its own date and category; the group total is always calculated |
@@ -45,7 +45,10 @@ The plan is a living document. It is updated when scope, risks or the approach c
 | Payment capture from notifications, statement import, reconciliation | Phase 4 |
 | Booked amount in KM taken from the bank statement for card payments in a foreign currency | Phase 4, as part of reconciliation |
 | Reminders for planned expenses | Phase 3, as Android notifications |
-| Localization (Serbian, Bosnian, Croatian) | Phase 5 |
+| Transfers between own accounts (cash withdrawal, credit card repayment, foreign currency to current account, top-up of an online account) | Phase 4. In Phase 1 they are not recorded; a transfer is never an expense |
+| Income and the balance of online accounts | Phase 5 |
+| Choosing a time zone per user | Later, with localization. In Phase 1 every user's time zone is `Europe/Sarajevo` |
+| Localization (Serbian, Bosnian, Croatian), including number formats with a thousands separator | Phase 5 |
 | Demo mode | Decided after Phase 1, together with the public demo |
 | Load and performance testing | Single-user personal app at this stage; basic response times are watched in CI only |
 | Penetration testing | Not planned. Authentication and authorization are tested functionally (see risk R2) |
@@ -53,7 +56,7 @@ The plan is a living document. It is updated when scope, risks or the approach c
 
 ## 3. References
 
-- User stories with acceptance criteria: `docs/user-stories/` (to be written)
+- User stories with acceptance criteria: `docs/user-stories/` (Phase 1a reviewed; Phase 1b to be written)
 - Test cases and traceability matrix: `docs/test-cases/` (to be written)
 - Project and test rules: `CLAUDE.md`
 
@@ -82,12 +85,12 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 |---|---|---|---|---|---|
 | R1 | Money is calculated or rounded incorrectly (totals, budget percentages, remaining amount) | 2 | 3 | **6** | Unit tests with boundary values and decimal edge cases; API and SQL checks that stored amounts match what was entered |
 | R2 | A user can see or change another user's data (accounts, expenses, categories, banks) | 2 | 3 | **6** | Dedicated API tests for every endpoint with two users; unauthenticated requests rejected (401); foreign resources not found (404) |
-| R3 | Report periods are wrong at boundaries (week start, month end, leap year, year change, time of day) | 3 | 2 | **6** | Controlled clock (`TimeProvider`); boundary value tests on period start and end; decision table for period × date |
+| R3 | Report periods are wrong at boundaries (week start, month end, leap year, year change, time of day, daylight saving time) | 3 | 2 | **6** | Controlled clock (`TimeProvider`); boundary value tests on period start and end; decision table for period × date; days when daylight saving time starts and ends; just after local midnight, when the local and the UTC date differ |
 | R4 | Invalid account numbers are accepted or valid ones rejected (check digits, length, country format) | 2 | 2 | 4 | Data-driven tests with valid and invalid IBANs and BBANs; equivalence partitions per country; mod 97 boundary cases |
 | R5 | Bank is recognized incorrectly from the account number | 2 | 2 | 4 | Data-driven tests over the bank code catalog; unknown codes fall back to manual entry |
 | R6 | Validation gaps let invalid expenses into the database (zero or negative amounts, future dates, too-long text) | 2 | 2 | 4 | Boundary values and equivalence partitions at API and UI level; database checks |
 | R7 | Deleting or archiving a category or account corrupts or hides related expenses | 2 | 3 | **6** | State transition tests for categories and accounts; checks that history and reports stay correct |
-| R8 | Filters, search, sorting or paging return wrong or incomplete results | 2 | 2 | 4 | Combination tests with pairwise selection; boundaries of page size and last page |
+| R8 | Filters, search, sorting or paging return wrong or incomplete results | 2 | 2 | 4 | Combination tests with pairwise selection; boundaries of page size and last page; search with and without diacritics and in different letter case; return to page 1 after a filter change |
 | R9 | CSV export is wrong or unsafe (decimal separator, encoding of local characters such as č, ć, š, đ, ž; formula injection through text fields) | 2 | 2 | 4 | Content checks of the exported file; values starting with `=`, `+`, `-`, `@` are neutralized |
 | R10 | Budget warnings appear at the wrong moment or not at all | 2 | 2 | 4 | Boundary values around 80% and 100% (just below, exactly at, just above) |
 | R11 | Session problems: user stays signed in after sign-out, or protected pages are reachable without signing in | 1 | 3 | 3 | UI and API tests for sign-out and for direct navigation to protected URLs |
@@ -97,6 +100,9 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | R15 | A group total differs from the sum of its expenses, or planned amounts are counted as spent | 2 | 3 | **6** | Invariant checks after adding, editing and deleting expenses in a group; reports checked with planned and paid items in the same month |
 | R16 | A database migration loses or corrupts existing data | 1 | 3 | 3 | Migrations applied to a database that already contains data; row counts and key values checked before and after |
 | R17 | A double click or double submit creates the same expense twice | 2 | 2 | 4 | UI test with a double click on save; API test with the same request sent twice |
+| R18 | Two edits of the same expense overwrite each other (lost update) | 1 | 3 | 3 | Edit the same expense in two browser contexts; the second save is rejected (409) and the first change is kept; repeated delete of the same expense |
+| R19 | An amount is read differently from what the user meant (decimal comma or point, thousands separator, pasted value, third decimal) | 2 | 3 | **6** | Equivalence partitions of input formats; boundary values on the number of decimals; UI tests for typing and pasting; API tests that reject three decimals; database check of the stored amount |
+| R20 | An expense is linked to the wrong account or card (a card of another account, an account guessed by the app, an archived account cleared on edit) | 2 | 2 | 4 | Decision table payment method × account type × card; API test with a card that does not belong to the account; edit of an expense with an archived account |
 
 ### 4.2 Project risks
 
@@ -137,12 +143,12 @@ The health check alone is not a smoke test. It only shows that the API is runnin
 
 | Technique | Where it is used |
 |---|---|
-| Equivalence partitioning | Amounts, text lengths, account number formats per country, filter values |
-| Boundary value analysis | Amount limits, date limits, page sizes, budget thresholds (80%, 100%), report period start and end; day 28–31 when copying a plan; month change at 23:59 and 00:00 in the user's time zone |
-| Decision tables | Report period × date; budget state (no budget, under, warning, over); category state × action; month type (future, current, past) × operation × paid or unpaid planned item |
-| State transition testing | Category lifecycle (active, archived); account lifecycle; sign-in session; planned item (planned → paid or skipped; no return from paid while linked to an expense) |
+| Equivalence partitioning | Amounts and amount input formats (decimal comma, decimal point, thousands separator), text lengths, account number formats per country, account types (bank, online), card types, filter values |
+| Boundary value analysis | Amount limits, date limits, page sizes, budget thresholds (80%, 100%), report period start and end; day 28–31 when copying a plan; month change at 23:59 and 00:00 in the user's time zone; days when daylight saving time starts and ends; 2 and 3 decimals in an amount |
+| Decision tables | Report period × date; budget state (no budget, under, warning, over); category state × action; payment method × account type × card; month type (future, current, past) × operation × paid or unpaid planned item |
+| State transition testing | Category lifecycle (active, archived, deleted only without expenses); account lifecycle, for bank and online accounts; sign-in session; planned item (planned → paid or skipped; no return from paid while linked to an expense) |
 | Pairwise testing | Combinations of list filters and sorting |
-| Error guessing and checklists | Empty input, whitespace only, local characters, very long input, double submit, browser back button |
+| Error guessing and checklists | Empty input, whitespace only, local characters, very long input, double submit, browser back button, pasted values, the same record open in two tabs |
 | Exploratory testing | Charters per feature area, time-boxed to 60–90 minutes, notes kept in `docs/exploratory/` |
 
 ### 5.3 Test types
@@ -164,6 +170,7 @@ The health check alone is not a smoke test. It only shows that the API is runnin
 | CI (GitHub Actions, `ubuntu-24.04`) | SQL Server container | All automated tests on every push and pull request; nightly full run. The container is new for every run. |
 
 - **Time control:** the app reads the current time from an injected `TimeProvider`. In tests the clock is fixed, so period boundaries can be tested for any date.
+- **Time zones:** the server and CI run in UTC. In Phase 1 every user's time zone is `Europe/Sarajevo` (UTC+1, UTC+2 in summer), and "today" is calculated in that zone.
 - **Test-only endpoints** (for example data seeding) exist only in the Test environment and are checked to be unavailable elsewhere.
 
 ## 7. Test data
@@ -254,9 +261,9 @@ Defects found are also tracked by severity and by the level where they were foun
 ## 13. Milestones
 
 1. ✅ Project skeleton, health check and CI
-2. Test plan and Phase 1 user stories reviewed
+2. ✅ Test plan and Phase 1a user stories reviewed
 3. Phase 1a: authentication → accounts → categories → expenses, each with its tests
-4. Phase 1b: reports → budget → budget vs actual → planned expenses and copying a month → expense groups → CSV export, each with its tests
+4. Phase 1b user stories, then Phase 1b: reports → budget → budget vs actual → planned expenses and copying a month → expense groups → CSV export, each with its tests
 5. Exploratory sessions, defect fixing, stability gate (10 green runs)
 6. Test summary report and Phase 1 exit
 
@@ -266,3 +273,4 @@ Defects found are also tracked by severity and by the level where they were foun
 |---|---|---|
 | 0.1 | 2026-11-09 | First draft |
 | 0.2 | 2026-11-22 | After the first review:<br>- added planned expenses, expense groups, description, note and per-currency totals to the scope<br>- clarified browser coverage<br>- explained how likelihood and impact are rated<br>- added risks R13–R17 and P5–P7<br>- added the smoke set<br>- added test databases per environment and the three kinds of test data |
+| 0.3 | 2026-11-23 | After the Phase 1a user stories:<br>- added online accounts, card types, virtual cards, payment methods, CAD and the "No account" filter to the scope<br>- moved transfers, income, online account balance and the time zone choice out of scope<br>- extended R3 (daylight saving time) and R8 (diacritics)<br>- added risks R18–R20<br>- added the time zone rule to the test environments<br>- extended the test design techniques |
