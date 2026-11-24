@@ -31,6 +31,7 @@
 **Notes:**
 - Email is the user name. It is compared case-insensitively and trimmed.
 - Password rule: at least 8 characters, at least one letter and one digit. Maximum length is 128 characters.
+- The password is not trimmed: spaces at the start or the end are part of the password. Only the email is trimmed.
 - The message in AC2 tells that the email is already registered. This makes it possible to check whether an email has an account (account enumeration). For a personal app this is accepted; sign-in (US-AUTH-02) does not reveal it.
 - Out of scope for Phase 1: email confirmation, password reset by email, two-factor authentication, sign-in with Google or other providers, deleting an account.
 

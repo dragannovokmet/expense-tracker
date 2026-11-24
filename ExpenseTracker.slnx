@@ -20,6 +20,11 @@
     <File Path="docs/user-stories/03-categories.md" />
     <File Path="docs/user-stories/04-expenses.md" />
   </Folder>
+  <Folder Name="/Solution Items/docs/test-cases/">
+    <File Path="docs/test-cases/README.md" />
+    <File Path="docs/test-cases/01-authentication.md" />
+    <File Path="docs/test-cases/traceability.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/ExpenseTracker.Api/ExpenseTracker.Api.csproj" />
     <Project Path="src/ExpenseTracker.Core/ExpenseTracker.Core.csproj" />
