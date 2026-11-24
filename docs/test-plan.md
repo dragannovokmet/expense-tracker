@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Document version** | 0.3 (draft) |
+| **Document version** | 0.4 (draft) |
 | **Author / QA owner** | Dragan Novokmet |
 | **Status** | Draft, under review |
-| **Last updated** | 2026-11-23 |
+| **Last updated** | 2026-11-25 |
 
 ## 1. Purpose
 
@@ -57,7 +57,7 @@ The plan is a living document. It is updated when scope, risks or the approach c
 ## 3. References
 
 - User stories with acceptance criteria: `docs/user-stories/` (Phase 1a reviewed; Phase 1b to be written)
-- Test cases and traceability matrix: `docs/test-cases/` (to be written)
+- Test cases and traceability matrix: `docs/test-cases/` (written per feature area, before it is implemented)
 - Project and test rules: `CLAUDE.md`
 
 ## 4. Risk analysis
@@ -84,16 +84,16 @@ Testing effort is driven by risk. Each risk is rated for likelihood (L) and impa
 | ID | Risk | L | I | Score | How testing addresses it |
 |---|---|---|---|---|---|
 | R1 | Money is calculated or rounded incorrectly (totals, budget percentages, remaining amount) | 2 | 3 | **6** | Unit tests with boundary values and decimal edge cases; API and SQL checks that stored amounts match what was entered |
-| R2 | A user can see or change another user's data (accounts, expenses, categories, banks) | 2 | 3 | **6** | Dedicated API tests for every endpoint with two users; unauthenticated requests rejected (401); foreign resources not found (404) |
+| R2 | A user can see or change another user's data (accounts, expenses, categories, banks): through a missing authorization check, or by getting into another user's account (weak sign-in protection, duplicate accounts, an exposed password, a redirect to a fake site) | 2 | 3 | **6** | Dedicated API tests for every endpoint with two users; unauthenticated requests rejected (401); foreign resources not found (404); tests for wrong credentials, lockout, duplicate emails, password storage and return addresses |
 | R3 | Report periods are wrong at boundaries (week start, month end, leap year, year change, time of day, daylight saving time) | 3 | 2 | **6** | Controlled clock (`TimeProvider`); boundary value tests on period start and end; decision table for period × date; days when daylight saving time starts and ends; just after local midnight, when the local and the UTC date differ |
 | R4 | Invalid account numbers are accepted or valid ones rejected (check digits, length, country format) | 2 | 2 | 4 | Data-driven tests with valid and invalid IBANs and BBANs; equivalence partitions per country; mod 97 boundary cases |
 | R5 | Bank is recognized incorrectly from the account number | 2 | 2 | 4 | Data-driven tests over the bank code catalog; unknown codes fall back to manual entry |
-| R6 | Validation gaps let invalid expenses into the database (zero or negative amounts, future dates, too-long text) | 2 | 2 | 4 | Boundary values and equivalence partitions at API and UI level; database checks |
+| R6 | Validation gaps let invalid data into the database (registration: email and password rules; expenses: zero or negative amounts, future dates, too-long text) | 2 | 2 | 4 | Boundary values and equivalence partitions at API and UI level; database checks |
 | R7 | Deleting or archiving a category or account corrupts or hides related expenses | 2 | 3 | **6** | State transition tests for categories and accounts; checks that history and reports stay correct |
 | R8 | Filters, search, sorting or paging return wrong or incomplete results | 2 | 2 | 4 | Combination tests with pairwise selection; boundaries of page size and last page; search with and without diacritics and in different letter case; return to page 1 after a filter change |
 | R9 | CSV export is wrong or unsafe (decimal separator, encoding of local characters such as č, ć, š, đ, ž; formula injection through text fields) | 2 | 2 | 4 | Content checks of the exported file; values starting with `=`, `+`, `-`, `@` are neutralized |
 | R10 | Budget warnings appear at the wrong moment or not at all | 2 | 2 | 4 | Boundary values around 80% and 100% (just below, exactly at, just above) |
-| R11 | Session problems: user stays signed in after sign-out, or protected pages are reachable without signing in | 1 | 3 | 3 | UI and API tests for sign-out and for direct navigation to protected URLs |
+| R11 | Sign-in and session problems: sign-in does not behave as described, the user stays signed in after sign-out, or protected pages are reachable without signing in | 1 | 3 | 3 | UI and API tests for sign-out and for direct navigation to protected URLs |
 | R12 | Accessibility barriers prevent keyboard or screen reader use | 2 | 1 | 2 | Automated axe checks on main pages; manual keyboard-only pass during exploratory sessions |
 | R13 | Amounts in different currencies are added together as if they were one currency (10 EUR + 10 KM shown as 20) | 2 | 3 | **6** | Reports, budget and group totals tested with mixed currencies; each currency has its own total; equivalence partitions per currency |
 | R14 | Copying a plan to the next month produces wrong dates or duplicates, or changes a closed month | 2 | 3 | **6** | Boundary values on day 28–31, leap year and December → January; copying into a month that already has a plan changes nothing; decision table for month type × operation × paid or unpaid item |
@@ -274,3 +274,4 @@ Defects found are also tracked by severity and by the level where they were foun
 | 0.1 | 2026-11-09 | First draft |
 | 0.2 | 2026-11-22 | After the first review:<br>- added planned expenses, expense groups, description, note and per-currency totals to the scope<br>- clarified browser coverage<br>- explained how likelihood and impact are rated<br>- added risks R13–R17 and P5–P7<br>- added the smoke set<br>- added test databases per environment and the three kinds of test data |
 | 0.3 | 2026-11-23 | After the Phase 1a user stories:<br>- added online accounts, card types, virtual cards, payment methods, CAD and the "No account" filter to the scope<br>- moved transfers, income, online account balance and the time zone choice out of scope<br>- extended R3 (daylight saving time) and R8 (diacritics)<br>- added risks R18–R20<br>- added the time zone rule to the test environments<br>- extended the test design techniques |
+| 0.4 | 2026-11-25 | Risk descriptions aligned with the authentication test cases:<br>- R2 also covers getting into another user's account (sign-in protection, duplicate accounts, password storage)<br>- R6 covers all input validation, including registration, not only expenses<br>- R11 also covers sign-in behavior<br>Scores are unchanged |
