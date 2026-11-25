@@ -71,6 +71,7 @@ The build treats warnings as errors, including NuGet vulnerability warnings. Fix
 - No `Thread.Sleep` or fixed waits. Use Playwright's auto-waiting assertions (`Expect(...)`).
 - Test names describe behavior: `Health_endpoint_returns_healthy`.
 - Apply ISTQB test design techniques where they fit (boundary values, equivalence partitions, decision tables) and name the technique in the test or data source.
+- Expected values come from the requirements (acceptance criteria), never from production code. Write expected messages, limits and results as literals in the test (or as constants in the test class), not as references to constants in `src/`. Otherwise a wrong change in the code changes the expectation too, and the test still passes.
 
 ## Data protection
 

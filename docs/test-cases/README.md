@@ -42,5 +42,10 @@ Preconditions and steps come from the Given and When of the acceptance criterion
   - **Smoke tests are always High**, whatever their risk, because every other test depends on them.
   - **A test case without a risk from the table is Medium.**
 - **Priority is never changed by hand.** If a test case seems more or less important than its priority, the risk rating in the test plan is reviewed instead.
+- **The risk description must cover the test case.** When test cases for an area are written, each risk is checked against the description in the test plan. If it does not cover the test case:
+  - **Same kind of harm and the same likelihood and impact:** the description of the existing risk is extended. Example: R6 was extended from expenses to registration, because invalid registration data is the same kind of defect with the same score.
+  - **A different harm, or a different likelihood or impact:** a new risk is added with the next ID. Example: R19 (an amount read wrongly) has a higher impact than general validation, so it could not become part of R6.
+
+  The question that decides is: *would the score change?* Extending a description must never hide a risk that deserves a higher priority. Risk IDs are never changed. Every change raises the test plan version, gets a row in its revision history, and is committed separately from the test cases.
 - **Test data is synthetic.** Emails use the reserved domain `example.com` (or a subdomain of it), and other sites use the reserved top-level domain `.example` (for example `evil.example`). These names can never belong to a real person or company. Automated tests make every email unique (for example `ana+<guid>@example.com`), so tests can run in parallel. The tables show the readable form.
 - **Status** of a test case (in the traceability matrix): Planned → Automated → Passing in CI. A test case that stays manual is marked Manual.

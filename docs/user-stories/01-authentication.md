@@ -29,8 +29,8 @@
 
 **Risks:** R6, R2
 **Notes:**
-- Email is the user name. It is compared case-insensitively and trimmed.
-- Password rule: at least 8 characters, at least one letter and one digit. Maximum length is 128 characters.
+- Email is the user name. It is compared case-insensitively and trimmed. Maximum length is 254 characters (the limit of an email address in RFC 5321); a longer email gets the message from AC4.
+- Password rule: at least 8 characters, at least one letter and one digit. Any letter counts, including local letters (š, ć, č, đ, ž); only 0–9 count as digits. Maximum length is 128 characters, with the message "Password can have at most 128 characters."
 - The password is not trimmed: spaces at the start or the end are part of the password. Only the email is trimmed.
 - The message in AC2 tells that the email is already registered. This makes it possible to check whether an email has an account (account enumeration). For a personal app this is accepted; sign-in (US-AUTH-02) does not reveal it.
 - Out of scope for Phase 1: email confirmation, password reset by email, two-factor authentication, sign-in with Google or other providers, deleting an account.
