@@ -1,23 +1,39 @@
+using ExpenseTracker.Infrastructure.Identity;
+
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.IntegrationTests;
 
 /// <summary>
-/// Hosts the API in-process against a dedicated test database.
-/// Locally it uses SQL Server LocalDB; in CI the connection string comes from
-/// the ConnectionStrings__Default environment variable (SQL Server container).
+/// Hosts the API in-process against the integration test database (<see cref="TestDatabase"/>).
+/// The database is prepared once per run by <see cref="TestDatabase"/>, so the API does not migrate it again.
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
-    private const string LocalDbConnectionString =
-        "Server=(localdb)\\MSSQLLocalDB;Database=ExpenseTracker_IntegrationTests;Trusted_Connection=True;TrustServerCertificate=True";
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Default") ?? LocalDbConnectionString;
+        builder.UseSetting("ConnectionStrings:Default", TestDatabase.ConnectionString);
+        builder.UseSetting("Database:ApplyMigrationsOnStartup", "false");
+    }
 
-        builder.UseSetting("ConnectionStrings:Default", connectionString);
-        builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
+    /// <summary>
+    /// Creates a user with a unique email through Identity and returns it.
+    /// Every test gets its own user, so tests can run in parallel.
+    /// </summary>
+    public async Task<AppUser> CreateUserAsync(string password = "Lozinka123")
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+        var email = $"ana+{Guid.NewGuid():N}@example.com";
+        var user = new AppUser { UserName = email, Email = email };
+
+        var result = await userManager.CreateAsync(user, password);
+        Assert.True(result.Succeeded, string.Join(" ", result.Errors.Select(e => e.Description)));
+
+        return user;
     }
 }

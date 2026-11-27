@@ -68,6 +68,7 @@ The build treats warnings as errors, including NuGet vulnerability warnings. Fix
 - UI tests use the Page Object Model (`tests/ExpenseTracker.UiTests/Pages`).
 - Set up data through the API, then verify the behavior under test in the UI.
 - Every test creates its own unique data and does not depend on other tests or on execution order. Tests must be able to run in parallel.
+- Tests share one database per test level, so a test never reads or changes data it did not create: no global counts (`SELECT COUNT(*) FROM Expenses`) and no deletes without the test's own IDs. Every query is filtered by the test's own user or record.
 - No `Thread.Sleep` or fixed waits. Use Playwright's auto-waiting assertions (`Expect(...)`).
 - Test names describe behavior: `Health_endpoint_returns_healthy`.
 - Apply ISTQB test design techniques where they fit (boundary values, equivalence partitions, decision tables) and name the technique in the test or data source.
